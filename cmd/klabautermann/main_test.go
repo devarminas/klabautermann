@@ -26,3 +26,20 @@ func TestRunUsageErrors(t *testing.T) {
 		}
 	}
 }
+
+func TestRunPipelineArgs(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	if code := run(context.Background(), []string{"run"}, &stdout, &stderr); code != 2 {
+		t.Errorf("run([run]) = %d, want 2", code)
+	}
+	if stderr.Len() == 0 {
+		t.Errorf("run([run]) wrote no stderr")
+	}
+	var out2, err2 bytes.Buffer
+	if code := run(context.Background(), []string{"run", "no-such-pipeline.json"}, &out2, &err2); code != 1 {
+		t.Errorf("run([run no-such-pipeline.json]) = %d, want 1", code)
+	}
+	if err2.Len() == 0 {
+		t.Errorf("run([run no-such-pipeline.json]) wrote no stderr")
+	}
+}

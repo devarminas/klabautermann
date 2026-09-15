@@ -277,6 +277,27 @@ func TestStepBudget(t *testing.T) {
 	}
 }
 
+func TestZeroROIUsesFullFrame(t *testing.T) {
+	r := image.Rect(140, 90, 164, 120)
+	n := tapNode("Z", r)
+	n.ROI = image.Rectangle{}
+	w := &Walker{
+		Nodes:   map[string]Node{"Z": n},
+		Capture: scripted(markerFrame(r)),
+		Tap:     func(ctx context.Context, x, y int) error { return nil },
+	}
+	hits, err := w.Run(context.Background(), "Z")
+	if err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+	if !equalStrings(hitNames(hits), []string{"Z"}) {
+		t.Fatalf("hits = %v, want [Z]", hitNames(hits))
+	}
+	if hits[0].At != r {
+		t.Fatalf("hits[0].At = %v, want %v", hits[0].At, r)
+	}
+}
+
 func TestFixedTap(t *testing.T) {
 	r := image.Rect(70, 30, 110, 50)
 	n := tapNode("F", r)

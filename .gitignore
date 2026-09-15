@@ -13,3 +13,10 @@ out/
 TestResults/
 *.user
 .vs/
+
+# Private FGO pack art under resources
+resources/**/*.png
+resources/**/*.jpg
+resources/**/*.jpeg
+!resources/**/*.json
+!resources/**/.gitkeep

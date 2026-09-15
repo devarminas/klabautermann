@@ -1,0 +1,8 @@
+{
+  "start": "Home",
+  "nodes": [
+    {"name": "Home", "template": "../templates/menu.png", "threshold": 0.8, "tap": "center", "next": ["Formation"]},
+    {"name": "Formation", "template": "../templates/formation.png", "tap": "center", "next": ["Close"]},
+    {"name": "Close", "template": "../templates/close.png", "tap": "center", "next": []}
+  ]
+}

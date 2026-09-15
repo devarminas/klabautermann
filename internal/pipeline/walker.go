@@ -86,6 +86,9 @@ func (w *Walker) Run(ctx context.Context, start string) ([]Hit, error) {
 		found := false
 		for _, name := range candidates {
 			n := nodes[name]
+			if n.ROI.Empty() {
+				n.ROI = frame.Bounds()
+			}
 			res, err := vision.Match(frame, n.Template, n.ROI)
 			if err != nil {
 				continue

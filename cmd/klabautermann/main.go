@@ -1,14 +1,19 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
+	"image"
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
 	"os"
 	"strconv"
 
 	"klabautermann/internal/adb"
+	"klabautermann/internal/pipeline"
 )
 
 type command struct {
@@ -135,6 +140,46 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 					return 1
 				}
 				fmt.Fprintf(stdout, "swiped %d %d %d %d %dms\n", vals[0], vals[1], vals[2], vals[3], vals[4])
+				return 0
+			},
+		},
+		"run": {
+			run: func(ctx context.Context, c *adb.Client, args []string, stdout, stderr io.Writer) int {
+				if len(args) != 1 {
+					fmt.Fprintln(stderr, "usage: klabautermann run <pipeline.json>")
+					fmt.Fprintln(stderr, "error: run requires 1 argument")
+					return 2
+				}
+				p, err := pipeline.Load(args[0])
+				if err != nil {
+					fmt.Fprintln(stderr, err.Error())
+					return 1
+				}
+				w := &pipeline.Walker{
+					Nodes: p.Nodes,
+					Capture: func(ctx context.Context) (image.Image, error) {
+						data, err := c.Screencap(ctx)
+						if err != nil {
+							return nil, err
+						}
+						img, _, err := image.Decode(bytes.NewReader(data))
+						if err != nil {
+							return nil, err
+						}
+						return img, nil
+					},
+					Tap: func(ctx context.Context, x, y int) error {
+						return c.Tap(ctx, x, y)
+					},
+				}
+				hits, err := w.Run(ctx, p.Start)
+				if err != nil {
+					fmt.Fprintln(stderr, err.Error())
+					return 1
+				}
+				for _, h := range hits {
+					fmt.Fprintf(stdout, "hit %s %.3f %v\n", h.Node, h.Score, h.At)
+				}
 				return 0
 			},
 		},
