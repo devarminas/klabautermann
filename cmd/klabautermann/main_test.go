@@ -27,6 +27,16 @@ func TestRunUsageErrors(t *testing.T) {
 	}
 }
 
+func TestRunRejectsUnknownCapture(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	if code := run(context.Background(), []string{"run", "--capture", "bogus", "no-such-pipeline.json"}, &stdout, &stderr); code != 2 {
+		t.Errorf("run([run --capture bogus no-such-pipeline.json]) = %d, want 2", code)
+	}
+	if stderr.Len() == 0 {
+		t.Error("run([run --capture bogus no-such-pipeline.json]) wrote no stderr")
+	}
+}
+
 func TestRunPipelineArgs(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	if code := run(context.Background(), []string{"run"}, &stdout, &stderr); code != 2 {

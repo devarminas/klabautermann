@@ -13,6 +13,7 @@ import (
 	"strconv"
 
 	"klabautermann/internal/adb"
+	"klabautermann/internal/mumu"
 	"klabautermann/internal/pipeline"
 )
 
@@ -145,29 +146,64 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		},
 		"run": {
 			run: func(ctx context.Context, c *adb.Client, args []string, stdout, stderr io.Writer) int {
-				if len(args) != 1 {
-					fmt.Fprintln(stderr, "usage: klabautermann run <pipeline.json>")
+				rfs := flag.NewFlagSet("run", flag.ContinueOnError)
+				rfs.SetOutput(stderr)
+				capture := rfs.String("capture", "adb", "capture backend: adb or mumu")
+				mumuRoot := rfs.String("mumu-root", `D:\Program Files\Netease\MuMuPlayer`, "MuMu Player install root")
+				mumuIndex := rfs.Int("mumu-index", 0, "MuMu instance index")
+				pkg := rfs.String("package", "", "package name for MuMu display lookup")
+				if err := rfs.Parse(args); err != nil {
+					fmt.Fprintln(stderr, "usage: klabautermann run [--capture adb|mumu ...] <pipeline.json>")
+					return 2
+				}
+				if *capture != "adb" && *capture != "mumu" {
+					fmt.Fprintln(stderr, "usage: klabautermann run [--capture adb|mumu ...] <pipeline.json>")
+					fmt.Fprintln(stderr, "error: unknown capture backend "+*capture)
+					return 2
+				}
+				if rfs.NArg() != 1 {
+					fmt.Fprintln(stderr, "usage: klabautermann run [--capture adb|mumu ...] <pipeline.json>")
 					fmt.Fprintln(stderr, "error: run requires 1 argument")
 					return 2
 				}
-				p, err := pipeline.Load(args[0])
+				p, err := pipeline.Load(rfs.Arg(0))
 				if err != nil {
 					fmt.Fprintln(stderr, err.Error())
 					return 1
 				}
+				captureFn := func(ctx context.Context) (image.Image, error) {
+					data, err := c.Screencap(ctx)
+					if err != nil {
+						return nil, err
+					}
+					img, _, err := image.Decode(bytes.NewReader(data))
+					if err != nil {
+						return nil, err
+					}
+					return img, nil
+				}
+				if *capture == "mumu" {
+					mc, err := mumu.Connect(*mumuRoot, *mumuIndex)
+					if err != nil {
+						fmt.Fprintln(stderr, err.Error())
+						return 1
+					}
+					defer mc.Close()
+					displayID := 0
+					if *pkg != "" {
+						displayID, err = mc.DisplayID(*pkg, *mumuIndex)
+						if err != nil {
+							fmt.Fprintln(stderr, err.Error())
+							return 1
+						}
+					}
+					captureFn = func(context.Context) (image.Image, error) {
+						return mc.Capture(displayID)
+					}
+				}
 				w := &pipeline.Walker{
-					Nodes: p.Nodes,
-					Capture: func(ctx context.Context) (image.Image, error) {
-						data, err := c.Screencap(ctx)
-						if err != nil {
-							return nil, err
-						}
-						img, _, err := image.Decode(bytes.NewReader(data))
-						if err != nil {
-							return nil, err
-						}
-						return img, nil
-					},
+					Nodes:   p.Nodes,
+					Capture: captureFn,
 					Tap: func(ctx context.Context, x, y int) error {
 						return c.Tap(ctx, x, y)
 					},
