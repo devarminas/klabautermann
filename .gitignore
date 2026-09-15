@@ -1,0 +1,15 @@
+# Go
+/bin/
+/dist/
+*.exe
+*.test
+*.out
+go.work.sum
+
+# .NET
+bin/
+obj/
+out/
+TestResults/
+*.user
+.vs/
