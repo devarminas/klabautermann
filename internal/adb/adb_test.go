@@ -138,3 +138,70 @@ func TestTapPropagatesExecError(t *testing.T) {
 		t.Fatalf("Tap error = %v, want %v", err, sentinel)
 	}
 }
+
+func TestConnectArgs(t *testing.T) {
+	c := mustNew(t, Config{Serial: "test-serial"})
+	var gotArgs []string
+	c.run = func(_ context.Context, args []string) ([]byte, error) {
+		gotArgs = args
+		return nil, nil
+	}
+	if err := c.Connect(context.Background()); err != nil {
+		t.Fatalf("Connect error = %v", err)
+	}
+	want := []string{"connect", "test-serial"}
+	if !reflect.DeepEqual(gotArgs, want) {
+		t.Errorf("args = %v, want %v", gotArgs, want)
+	}
+}
+
+func TestConnectPropagatesExecError(t *testing.T) {
+	c := mustNew(t, Config{})
+	sentinel := errors.New("device offline")
+	c.run = func(_ context.Context, _ []string) ([]byte, error) { return nil, sentinel }
+	if err := c.Connect(context.Background()); !errors.Is(err, sentinel) {
+		t.Fatalf("Connect error = %v, want %v", err, sentinel)
+	}
+}
+
+func TestSwipeArgs(t *testing.T) {
+	c := mustNew(t, Config{Serial: "test-serial"})
+	var gotArgs []string
+	c.run = func(_ context.Context, args []string) ([]byte, error) {
+		gotArgs = args
+		return nil, nil
+	}
+	if err := c.Swipe(context.Background(), 100, 200, 300, 400, 500); err != nil {
+		t.Fatalf("Swipe error = %v", err)
+	}
+	want := []string{"-s", "test-serial", "shell", "input", "swipe", "100", "200", "300", "400", "500"}
+	if !reflect.DeepEqual(gotArgs, want) {
+		t.Errorf("args = %v, want %v", gotArgs, want)
+	}
+}
+
+func TestSwipeRejectsNegativeInput(t *testing.T) {
+	c := mustNew(t, Config{})
+	called := false
+	c.run = func(_ context.Context, _ []string) ([]byte, error) {
+		called = true
+		return nil, nil
+	}
+	for _, tc := range [][5]int{{-1, 0, 0, 0, 100}, {0, 0, -5, 0, 100}, {0, 0, 100, 100, -1}} {
+		if err := c.Swipe(context.Background(), tc[0], tc[1], tc[2], tc[3], tc[4]); err == nil {
+			t.Errorf("Swipe(%d, %d, %d, %d, %d) error = nil, want non-negative complaint", tc[0], tc[1], tc[2], tc[3], tc[4])
+		}
+	}
+	if called {
+		t.Error("run invoked for invalid swipe input")
+	}
+}
+
+func TestSwipePropagatesExecError(t *testing.T) {
+	c := mustNew(t, Config{})
+	sentinel := errors.New("device offline")
+	c.run = func(_ context.Context, _ []string) ([]byte, error) { return nil, sentinel }
+	if err := c.Swipe(context.Background(), 100, 200, 300, 400, 500); !errors.Is(err, sentinel) {
+		t.Fatalf("Swipe error = %v, want %v", err, sentinel)
+	}
+}

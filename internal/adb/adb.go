@@ -81,3 +81,26 @@ func (c *Client) Tap(ctx context.Context, x, y int) error {
 	})
 	return err
 }
+
+func (c *Client) Connect(ctx context.Context) error {
+	ctx, cancel := c.withTimeout(ctx)
+	defer cancel()
+	_, err := c.run(ctx, []string{"connect", c.serial})
+	return err
+}
+
+func (c *Client) Swipe(ctx context.Context, x1, y1, x2, y2 int, durationMs int) error {
+	if x1 < 0 || y1 < 0 || x2 < 0 || y2 < 0 {
+		return fmt.Errorf("adb: swipe coordinates must be non-negative, got (%d, %d, %d, %d)", x1, y1, x2, y2)
+	}
+	if durationMs < 0 {
+		return fmt.Errorf("adb: swipe duration must be non-negative, got %d", durationMs)
+	}
+	ctx, cancel := c.withTimeout(ctx)
+	defer cancel()
+	_, err := c.run(ctx, []string{
+		"-s", c.serial, "shell", "input", "swipe",
+		strconv.Itoa(x1), strconv.Itoa(y1), strconv.Itoa(x2), strconv.Itoa(y2), strconv.Itoa(durationMs),
+	})
+	return err
+}
