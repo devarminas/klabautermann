@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"testing"
+	"time"
 )
 
 func grayFrame(w, h int, bg uint8) *image.Gray {
@@ -110,6 +111,7 @@ func TestWalk(t *testing.T) {
 			"NoAP":  tapNode("NoAP", noap),
 		},
 		Capture: scripted(markerFrame(home), markerFrame(quest), markerFrame(noap)),
+		Settle:  time.Millisecond,
 	}
 	var taps []image.Point
 	w.Tap = func(ctx context.Context, x, y int) error {

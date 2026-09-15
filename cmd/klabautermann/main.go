@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"time"
 
 	"klabautermann/internal/adb"
 	"klabautermann/internal/mumu"
@@ -30,6 +31,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	fs.SetOutput(stderr)
 	adbPath := fs.String("adb", "adb", "path to adb binary")
 	serial := fs.String("serial", adb.DefaultSerial, "device serial")
+	display := fs.Int("display", 0, "display id for taps, 0 follows capture in run")
 	pipe := fs.Bool("pipe", false, "run as daemon with pipe protocol")
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -44,7 +46,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "error: no command")
 		return 2
 	}
-	client, err := adb.New(adb.Config{AdbPath: *adbPath, Serial: *serial})
+	client, err := adb.New(adb.Config{AdbPath: *adbPath, Serial: *serial, Display: *display})
 	if err != nil {
 		fmt.Fprintln(stderr, err.Error())
 		return 1
@@ -152,6 +154,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 				mumuRoot := rfs.String("mumu-root", `D:\Program Files\Netease\MuMuPlayer`, "MuMu Player install root")
 				mumuIndex := rfs.Int("mumu-index", 0, "MuMu instance index")
 				pkg := rfs.String("package", "", "package name for MuMu display lookup")
+				settleMs := rfs.Int("settle-ms", 1500, "wait after each tap for screen transitions")
 				if err := rfs.Parse(args); err != nil {
 					fmt.Fprintln(stderr, "usage: klabautermann run [--capture adb|mumu ...] <pipeline.json>")
 					return 2
@@ -196,6 +199,9 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 							fmt.Fprintln(stderr, err.Error())
 							return 1
 						}
+						if *display == 0 {
+							c.Display = displayID
+						}
 					}
 					captureFn = func(context.Context) (image.Image, error) {
 						return mc.Capture(displayID)
@@ -207,6 +213,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 					Tap: func(ctx context.Context, x, y int) error {
 						return c.Tap(ctx, x, y)
 					},
+					Settle: time.Duration(*settleMs) * time.Millisecond,
 				}
 				hits, err := w.Run(ctx, p.Start)
 				if err != nil {

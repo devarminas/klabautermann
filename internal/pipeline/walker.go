@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"image"
+	"time"
 
 	"klabautermann/internal/vision"
 )
@@ -31,6 +32,7 @@ type Walker struct {
 	Tap       func(ctx context.Context, x, y int) error
 	MaxMisses int
 	MaxSteps  int
+	Settle    time.Duration
 }
 
 func (w *Walker) Run(ctx context.Context, start string) ([]Hit, error) {
@@ -124,6 +126,13 @@ func (w *Walker) Run(ctx context.Context, start string) ([]Hit, error) {
 		}
 		if err != nil {
 			return hits, fmt.Errorf("pipeline: tap node %q: %w", currentName, err)
+		}
+		if w.Settle > 0 {
+			select {
+			case <-ctx.Done():
+				return hits, fmt.Errorf("pipeline: context: %w", ctx.Err())
+			case <-time.After(w.Settle):
+			}
 		}
 		steps++
 		if steps > maxSteps {
