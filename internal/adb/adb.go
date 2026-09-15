@@ -63,10 +63,11 @@ func (c *Client) Screencap(ctx context.Context) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(out) < len(pngMagic) || !bytes.Equal(out[:len(pngMagic)], pngMagic) {
+	idx := bytes.Index(out, pngMagic)
+	if idx < 0 {
 		return nil, fmt.Errorf("adb: screencap returned %d bytes without PNG signature", len(out))
 	}
-	return out, nil
+	return out[idx:], nil
 }
 
 func (c *Client) Tap(ctx context.Context, x, y int) error {

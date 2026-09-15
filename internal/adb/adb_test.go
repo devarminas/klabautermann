@@ -70,6 +70,21 @@ func TestScreencapRejectsNonPNG(t *testing.T) {
 	}
 }
 
+func TestScreencapStripsStdoutPrefix(t *testing.T) {
+	c := mustNew(t, Config{})
+	png := append(append([]byte{}, pngMagic...), 0x00, 0x01)
+	c.run = func(_ context.Context, args []string) ([]byte, error) {
+		return append([]byte("[Warning] Multiple displays were found"), png...), nil
+	}
+	out, err := c.Screencap(context.Background())
+	if err != nil {
+		t.Fatalf("Screencap error = %v", err)
+	}
+	if !reflect.DeepEqual(out, png) {
+		t.Errorf("Screencap returned %v, want %v", out, png)
+	}
+}
+
 func TestScreencapPropagatesExecError(t *testing.T) {
 	c := mustNew(t, Config{})
 	sentinel := errors.New("device offline")
