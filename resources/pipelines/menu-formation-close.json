@@ -1,8 +1,8 @@
 {
   "start": "Home",
   "nodes": [
-    {"name": "Home", "template": "../templates/menu.png", "threshold": 0.8, "tap": "center", "next": ["Formation"]},
-    {"name": "Formation", "template": "../templates/formation.png", "tap": "center", "next": ["Close"]},
-    {"name": "Close", "template": "../templates/close.png", "tap": "center", "next": []}
+    {"name": "Home", "template": "../templates/menu.png", "threshold": 0.8, "tap": "center", "roi": {"x": 1620, "y": 870, "w": 300, "h": 170}, "next": ["Formation"]},
+    {"name": "Formation", "template": "../templates/formation.png", "tap": "center", "roi": {"x": 310, "y": 720, "w": 240, "h": 270}, "next": ["Close"]},
+    {"name": "Close", "template": "../templates/close.png", "threshold": 0.85, "tap": "center", "roi": {"x": 0, "y": 30, "w": 260, "h": 130}, "next": []}
   ]
 }

@@ -19,16 +19,21 @@ type Config struct {
 	AdbPath string
 	Serial  string
 	Timeout time.Duration
+	Display int
 }
 
 type Client struct {
 	adbPath string
 	serial  string
 	timeout time.Duration
+	Display int
 	run     func(ctx context.Context, args []string) ([]byte, error)
 }
 
 func New(cfg Config) (*Client, error) {
+	if cfg.Display < 0 {
+		return nil, fmt.Errorf("adb: display id must be non-negative, got %d", cfg.Display)
+	}
 	if cfg.AdbPath == "" {
 		cfg.AdbPath = "adb"
 	}
@@ -38,7 +43,7 @@ func New(cfg Config) (*Client, error) {
 	if cfg.Timeout <= 0 {
 		cfg.Timeout = DefaultTimeout
 	}
-	c := &Client{adbPath: cfg.AdbPath, serial: cfg.Serial, timeout: cfg.Timeout}
+	c := &Client{adbPath: cfg.AdbPath, serial: cfg.Serial, timeout: cfg.Timeout, Display: cfg.Display}
 	c.run = func(ctx context.Context, args []string) ([]byte, error) {
 		cmd := exec.CommandContext(ctx, c.adbPath, args...)
 		var stdout, stderr bytes.Buffer
@@ -76,10 +81,12 @@ func (c *Client) Tap(ctx context.Context, x, y int) error {
 	}
 	ctx, cancel := c.withTimeout(ctx)
 	defer cancel()
-	_, err := c.run(ctx, []string{
-		"-s", c.serial, "shell", "input", "tap",
-		strconv.Itoa(x), strconv.Itoa(y),
-	})
+	args := []string{"-s", c.serial, "shell", "input"}
+	if c.Display != 0 {
+		args = append(args, "-d", strconv.Itoa(c.Display))
+	}
+	args = append(args, "tap", strconv.Itoa(x), strconv.Itoa(y))
+	_, err := c.run(ctx, args)
 	return err
 }
 
@@ -99,9 +106,13 @@ func (c *Client) Swipe(ctx context.Context, x1, y1, x2, y2 int, durationMs int) 
 	}
 	ctx, cancel := c.withTimeout(ctx)
 	defer cancel()
-	_, err := c.run(ctx, []string{
-		"-s", c.serial, "shell", "input", "swipe",
+	args := []string{"-s", c.serial, "shell", "input"}
+	if c.Display != 0 {
+		args = append(args, "-d", strconv.Itoa(c.Display))
+	}
+	args = append(args, "swipe",
 		strconv.Itoa(x1), strconv.Itoa(y1), strconv.Itoa(x2), strconv.Itoa(y2), strconv.Itoa(durationMs),
-	})
+	)
+	_, err := c.run(ctx, args)
 	return err
 }

@@ -13,6 +13,7 @@ func TestRunUsageErrors(t *testing.T) {
 		{"connect", "extra"},
 		{"tap", "1"},
 		{"tap", "a", "b"},
+		{"--display", "2", "tap", "1"},
 		{"swipe", "a", "b", "c", "d", "e"},
 		{"screencap", "--bogus"},
 	}

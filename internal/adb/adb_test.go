@@ -220,3 +220,35 @@ func TestSwipePropagatesExecError(t *testing.T) {
 		t.Fatalf("Swipe error = %v, want %v", err, sentinel)
 	}
 }
+
+func TestTapArgsWithDisplay(t *testing.T) {
+	c := mustNew(t, Config{Serial: "test-serial", Display: 2})
+	var gotArgs []string
+	c.run = func(_ context.Context, args []string) ([]byte, error) {
+		gotArgs = args
+		return nil, nil
+	}
+	if err := c.Tap(context.Background(), 640, 360); err != nil {
+		t.Fatalf("Tap error = %v", err)
+	}
+	want := []string{"-s", "test-serial", "shell", "input", "-d", "2", "tap", "640", "360"}
+	if !reflect.DeepEqual(gotArgs, want) {
+		t.Errorf("args = %v, want %v", gotArgs, want)
+	}
+}
+
+func TestSwipeArgsWithDisplay(t *testing.T) {
+	c := mustNew(t, Config{Serial: "test-serial", Display: 2})
+	var gotArgs []string
+	c.run = func(_ context.Context, args []string) ([]byte, error) {
+		gotArgs = args
+		return nil, nil
+	}
+	if err := c.Swipe(context.Background(), 100, 200, 300, 400, 500); err != nil {
+		t.Fatalf("Swipe error = %v", err)
+	}
+	want := []string{"-s", "test-serial", "shell", "input", "-d", "2", "swipe", "100", "200", "300", "400", "500"}
+	if !reflect.DeepEqual(gotArgs, want) {
+		t.Errorf("args = %v, want %v", gotArgs, want)
+	}
+}
