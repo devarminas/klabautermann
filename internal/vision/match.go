@@ -7,22 +7,28 @@ import (
 	"math"
 )
 
-func Match(frame, tmpl image.Image, roi image.Rectangle) (image.Rectangle, float64, error) {
+type MatchResult struct {
+	Rect   image.Rectangle
+	Center image.Point
+	Score  float64
+}
+
+func Match(frame, tmpl image.Image, roi image.Rectangle) (MatchResult, error) {
 	if frame == nil || frame.Bounds().Empty() {
-		return image.Rectangle{}, 0, errors.New("vision: empty frame bounds")
+		return MatchResult{}, errors.New("vision: empty frame bounds")
 	}
 	if tmpl == nil || tmpl.Bounds().Empty() {
-		return image.Rectangle{}, 0, errors.New("vision: empty template bounds")
+		return MatchResult{}, errors.New("vision: empty template bounds")
 	}
 	clipped := roi.Intersect(frame.Bounds())
 	if clipped.Empty() {
-		return image.Rectangle{}, 0, errors.New("vision: ROI clipped to nothing")
+		return MatchResult{}, errors.New("vision: ROI clipped to nothing")
 	}
 	tb := tmpl.Bounds()
 	tw := tb.Dx()
 	th := tb.Dy()
 	if tw > clipped.Dx() || th > clipped.Dy() {
-		return image.Rectangle{}, 0, errors.New("vision: template larger than clipped ROI")
+		return MatchResult{}, errors.New("vision: template larger than clipped ROI")
 	}
 	fb := frame.Bounds()
 	fw := fb.Dx()
@@ -50,7 +56,7 @@ func Match(frame, tmpl image.Image, roi image.Rectangle) (image.Rectangle, float
 		tvar += d * d
 	}
 	if tvar == 0 {
-		return image.Rectangle{}, 0, errors.New("vision: zero-variance template")
+		return MatchResult{}, errors.New("vision: zero-variance template")
 	}
 	tstd := math.Sqrt(tvar)
 	stride := fw + 1
@@ -105,5 +111,9 @@ func Match(frame, tmpl image.Image, roi image.Rectangle) (image.Rectangle, float
 			}
 		}
 	}
-	return best, bestScore, nil
+	return MatchResult{
+		Rect:   best,
+		Center: image.Point{X: (best.Min.X + best.Max.X) / 2, Y: (best.Min.Y + best.Max.Y) / 2},
+		Score:  bestScore,
+	}, nil
 }

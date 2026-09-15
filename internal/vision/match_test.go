@@ -43,15 +43,18 @@ func TestMatchSameScreenHit(t *testing.T) {
 	src := image.Rect(50, 60, 90, 80)
 	drawRect(frame, src, 0, 255)
 	tmpl := cropGray(frame, src)
-	got, score, err := Match(frame, tmpl, frame.Bounds())
+	got, err := Match(frame, tmpl, frame.Bounds())
 	if err != nil {
 		t.Fatalf("Match returned error: %v", err)
 	}
-	if got != src {
-		t.Fatalf("Match rect = %v, want %v", got, src)
+	if got.Rect != src {
+		t.Fatalf("Match rect = %v, want %v", got.Rect, src)
 	}
-	if score <= 0.99 {
-		t.Fatalf("Match score = %v, want above 0.99", score)
+	if (got.Center != image.Point{X: 70, Y: 70}) {
+		t.Fatalf("Match center = %v, want %v", got.Center, image.Point{X: 70, Y: 70})
+	}
+	if got.Score <= 0.99 {
+		t.Fatalf("Match score = %v, want above 0.99", got.Score)
 	}
 }
 
@@ -60,12 +63,12 @@ func TestMatchMiss(t *testing.T) {
 	drawRect(with, image.Rect(50, 60, 90, 80), 0, 255)
 	tmpl := cropGray(with, image.Rect(50, 60, 90, 80))
 	frame := grayFrame(200, 150, 255)
-	_, score, err := Match(frame, tmpl, frame.Bounds())
+	got, err := Match(frame, tmpl, frame.Bounds())
 	if err != nil {
 		t.Fatalf("Match returned error: %v", err)
 	}
-	if score >= 0.8 {
-		t.Fatalf("Match score = %v, want below 0.8", score)
+	if got.Score >= 0.8 {
+		t.Fatalf("Match score = %v, want below 0.8", got.Score)
 	}
 }
 
@@ -76,15 +79,18 @@ func TestMatchShift(t *testing.T) {
 	frame := grayFrame(200, 150, 255)
 	want := image.Rect(60, 60, 100, 80)
 	drawRect(frame, want, 0, 255)
-	got, score, err := Match(frame, tmpl, image.Rect(40, 50, 120, 90))
+	got, err := Match(frame, tmpl, image.Rect(40, 50, 120, 90))
 	if err != nil {
 		t.Fatalf("Match returned error: %v", err)
 	}
-	if got != want {
-		t.Fatalf("Match rect = %v, want %v", got, want)
+	if got.Rect != want {
+		t.Fatalf("Match rect = %v, want %v", got.Rect, want)
 	}
-	if score <= 0.99 {
-		t.Fatalf("Match score = %v, want above 0.99", score)
+	if (got.Center != image.Point{X: 80, Y: 70}) {
+		t.Fatalf("Match center = %v, want %v", got.Center, image.Point{X: 80, Y: 70})
+	}
+	if got.Score <= 0.99 {
+		t.Fatalf("Match score = %v, want above 0.99", got.Score)
 	}
 }
 
@@ -95,15 +101,18 @@ func TestMatchBrightnessInvariance(t *testing.T) {
 	tmpl := cropGray(with, src)
 	frame := grayFrame(200, 150, 220)
 	drawRect(frame, src, 120, 220)
-	got, score, err := Match(frame, tmpl, frame.Bounds())
+	got, err := Match(frame, tmpl, frame.Bounds())
 	if err != nil {
 		t.Fatalf("Match returned error: %v", err)
 	}
-	if got != src {
-		t.Fatalf("Match rect = %v, want %v", got, src)
+	if got.Rect != src {
+		t.Fatalf("Match rect = %v, want %v", got.Rect, src)
 	}
-	if score <= 0.99 {
-		t.Fatalf("Match score = %v, want above 0.99", score)
+	if (got.Center != image.Point{X: 70, Y: 70}) {
+		t.Fatalf("Match center = %v, want %v", got.Center, image.Point{X: 70, Y: 70})
+	}
+	if got.Score <= 0.99 {
+		t.Fatalf("Match score = %v, want above 0.99", got.Score)
 	}
 }
 
@@ -111,13 +120,13 @@ func TestMatchErrors(t *testing.T) {
 	frame := grayFrame(200, 150, 255)
 	drawRect(frame, image.Rect(50, 60, 90, 80), 0, 255)
 	tmpl := cropGray(frame, image.Rect(50, 60, 90, 80))
-	if _, _, err := Match(frame, tmpl, image.Rect(0, 0, 10, 10)); err == nil {
+	if _, err := Match(frame, tmpl, image.Rect(0, 0, 10, 10)); err == nil {
 		t.Fatalf("template larger than ROI: expected error, got nil")
 	}
-	if _, _, err := Match(frame, image.NewGray(image.Rectangle{}), frame.Bounds()); err == nil {
+	if _, err := Match(frame, image.NewGray(image.Rectangle{}), frame.Bounds()); err == nil {
 		t.Fatalf("empty template: expected error, got nil")
 	}
-	if _, _, err := Match(frame, tmpl, image.Rect(500, 500, 600, 600)); err == nil {
+	if _, err := Match(frame, tmpl, image.Rect(500, 500, 600, 600)); err == nil {
 		t.Fatalf("ROI outside frame: expected error, got nil")
 	}
 }
