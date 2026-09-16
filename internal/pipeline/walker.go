@@ -18,6 +18,14 @@ type Node struct {
 	TapPoint  image.Point
 	Next      []string
 	OnError   string
+	Scan      *ScanSpec
+}
+
+// ScanSpec is one drag gesture plus a swipe budget.
+type ScanSpec struct {
+	X1, Y1, X2, Y2 int
+	DurationMs     int
+	MaxSwipes      int
 }
 
 type Hit struct {
@@ -30,6 +38,7 @@ type Walker struct {
 	Nodes     map[string]Node
 	Capture   func(ctx context.Context) (image.Image, error)
 	Tap       func(ctx context.Context, x, y int) error
+	Swipe     func(ctx context.Context, x1, y1, x2, y2, ms int) error
 	MaxMisses int
 	MaxSteps  int
 	Settle    time.Duration
@@ -74,6 +83,7 @@ func (w *Walker) Run(ctx context.Context, start string) ([]Hit, error) {
 	owner := start
 	misses := 0
 	steps := 0
+	swipes := make(map[string]int)
 	for {
 		if err := ctx.Err(); err != nil {
 			return hits, fmt.Errorf("pipeline: context: %w", err)
@@ -105,11 +115,34 @@ func (w *Walker) Run(ctx context.Context, start string) ([]Hit, error) {
 			break
 		}
 		if !found {
+			o := nodes[owner]
+			if o.Scan != nil {
+				budget := o.Scan.MaxSwipes
+				if budget <= 0 {
+					budget = 5
+				}
+				if swipes[owner] < budget {
+					if w.Swipe == nil {
+						return hits, fmt.Errorf("pipeline: node %q has scan but swipe unsupported", owner)
+					}
+					if err := w.Swipe(ctx, o.Scan.X1, o.Scan.Y1, o.Scan.X2, o.Scan.Y2, o.Scan.DurationMs); err != nil {
+						return hits, fmt.Errorf("pipeline: swipe node %q: %w", owner, err)
+					}
+					if w.Settle > 0 {
+						select {
+						case <-ctx.Done():
+							return hits, fmt.Errorf("pipeline: context: %w", ctx.Err())
+						case <-time.After(w.Settle):
+						}
+					}
+					swipes[owner]++
+					continue
+				}
+			}
 			misses++
 			if misses <= maxMisses {
 				continue
 			}
-			o := nodes[owner]
 			if o.OnError == "" {
 				return hits, fmt.Errorf("pipeline: node %q missed %d frames with no recovery", owner, misses)
 			}
@@ -144,5 +177,6 @@ func (w *Walker) Run(ctx context.Context, start string) ([]Hit, error) {
 		candidates = append([]string(nil), current.Next...)
 		owner = currentName
 		misses = 0
+		swipes[currentName] = 0
 	}
 }

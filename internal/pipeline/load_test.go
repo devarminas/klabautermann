@@ -138,3 +138,22 @@ func TestLoadErrors(t *testing.T) {
 		t.Fatalf("corrupt template: expected error, got nil")
 	}
 }
+
+func TestLoadScan(t *testing.T) {
+	dir := t.TempDir()
+	writeTestPNG(t, filepath.Join(dir, "row.png"), 4, 3)
+	doc := `{"start": "List", "nodes": [{"name": "List", "template": "row.png", "next": [], "scan": {"x1": 100, "y1": 400, "x2": 100, "y2": 100, "ms": 500, "max": 7}}]}`
+	path := filepath.Join(dir, "pipe.json")
+	if err := os.WriteFile(path, []byte(doc), 0644); err != nil {
+		t.Fatal(err)
+	}
+	p, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	got := p.Nodes["List"].Scan
+	want := &ScanSpec{X1: 100, Y1: 400, X2: 100, Y2: 100, DurationMs: 500, MaxSwipes: 7}
+	if got == nil || *got != *want {
+		t.Fatalf("Scan = %v, want %v", got, want)
+	}
+}

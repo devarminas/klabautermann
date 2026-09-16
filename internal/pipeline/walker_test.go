@@ -325,3 +325,95 @@ func TestFixedTap(t *testing.T) {
 		t.Fatalf("taps = %v, want [{7 9}]", taps)
 	}
 }
+
+type swipeCall struct {
+	X1, Y1, X2, Y2, Ms int
+}
+
+func scanNode(name string, r image.Rectangle, spec ScanSpec, next ...string) Node {
+	n := tapNode(name, r, next...)
+	n.Scan = &spec
+	return n
+}
+
+func TestScanFindsOnThirdFrame(t *testing.T) {
+	r := image.Rect(70, 30, 110, 50)
+	spec := ScanSpec{X1: 100, Y1: 400, X2: 100, Y2: 100, DurationMs: 500, MaxSwipes: 5}
+	w := &Walker{
+		Nodes:   map[string]Node{"S": scanNode("S", r, spec)},
+		Capture: scripted(markerFrame(), markerFrame(), markerFrame(r)),
+		Tap:     func(ctx context.Context, x, y int) error { return nil },
+		Settle:  time.Millisecond,
+	}
+	var swipes []swipeCall
+	w.Swipe = func(ctx context.Context, x1, y1, x2, y2, ms int) error {
+		swipes = append(swipes, swipeCall{X1: x1, Y1: y1, X2: x2, Y2: y2, Ms: ms})
+		return nil
+	}
+	hits, err := w.Run(context.Background(), "S")
+	if err != nil {
+		t.Fatalf("Run returned error: %v", err)
+	}
+	if !equalStrings(hitNames(hits), []string{"S"}) {
+		t.Fatalf("hits = %v, want [S]", hitNames(hits))
+	}
+	want := []swipeCall{{X1: 100, Y1: 400, X2: 100, Y2: 100, Ms: 500}, {X1: 100, Y1: 400, X2: 100, Y2: 100, Ms: 500}}
+	if len(swipes) != len(want) {
+		t.Fatalf("swipes = %v, want %v", swipes, want)
+	}
+	for i := range want {
+		if swipes[i] != want[i] {
+			t.Fatalf("swipes[%d] = %v, want %v", i, swipes[i], want[i])
+		}
+	}
+}
+
+func TestScanBudgetExhausted(t *testing.T) {
+	r := image.Rect(70, 30, 110, 50)
+	spec := ScanSpec{X1: 100, Y1: 400, X2: 100, Y2: 100, DurationMs: 500, MaxSwipes: 2}
+	w := &Walker{
+		Nodes:   map[string]Node{"S": scanNode("S", r, spec)},
+		Capture: scripted(markerFrame()),
+		Tap:     func(ctx context.Context, x, y int) error { return nil },
+	}
+	swipes := 0
+	w.Swipe = func(ctx context.Context, x1, y1, x2, y2, ms int) error {
+		swipes++
+		return nil
+	}
+	hits, err := w.Run(context.Background(), "S")
+	if err == nil {
+		t.Fatalf("expected exhaustion error, got nil")
+	}
+	if swipes != 2 {
+		t.Fatalf("swipes = %d, want 2", swipes)
+	}
+	if len(hits) != 0 {
+		t.Fatalf("hits = %v, want []", hitNames(hits))
+	}
+}
+
+func TestScanWithoutSwipeFunc(t *testing.T) {
+	r := image.Rect(70, 30, 110, 50)
+	spec := ScanSpec{X1: 100, Y1: 400, X2: 100, Y2: 100, DurationMs: 500, MaxSwipes: 5}
+	calls := 0
+	w := &Walker{
+		Nodes: map[string]Node{"S": scanNode("S", r, spec)},
+		Capture: func(ctx context.Context) (image.Image, error) {
+			calls++
+			return markerFrame(), nil
+		},
+		Tap: func(ctx context.Context, x, y int) error { return nil },
+	}
+	_, err := w.Run(context.Background(), "S")
+	if err == nil {
+		t.Fatalf("expected scan naming error, got nil")
+	}
+	if calls != 1 {
+		t.Fatalf("capture calls = %d, want 1", calls)
+	}
+	want := `pipeline: node "S" has scan but swipe unsupported`
+	if err.Error() != want {
+		t.Fatalf("err = %q, want %q", err.Error(), want)
+	}
+}

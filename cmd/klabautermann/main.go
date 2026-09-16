@@ -214,6 +214,9 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 					Tap: func(ctx context.Context, x, y int) error {
 						return c.Tap(ctx, x, y)
 					},
+					Swipe: func(ctx context.Context, x1, y1, x2, y2, ms int) error {
+						return c.Swipe(ctx, x1, y1, x2, y2, ms)
+					},
 					Settle: time.Duration(*settleMs) * time.Millisecond,
 				}
 				hits, err := w.Run(ctx, p.Start)

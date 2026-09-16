@@ -36,6 +36,14 @@ type rawNode struct {
 	ROI       *rawRect        `json:"roi"`
 	Next      []string        `json:"next"`
 	OnError   string          `json:"on_error"`
+	Scan      *struct {
+		X1  int `json:"x1"`
+		Y1  int `json:"y1"`
+		X2  int `json:"x2"`
+		Y2  int `json:"y2"`
+		Ms  int `json:"ms"`
+		Max int `json:"max"`
+	} `json:"scan,omitempty"`
 }
 
 type rawPipeline struct {
@@ -101,6 +109,9 @@ func Load(path string) (Pipeline, error) {
 		}
 		if rn.ROI != nil {
 			n.ROI = image.Rect(rn.ROI.X, rn.ROI.Y, rn.ROI.X+rn.ROI.W, rn.ROI.Y+rn.ROI.H)
+		}
+		if rn.Scan != nil {
+			n.Scan = &ScanSpec{X1: rn.Scan.X1, Y1: rn.Scan.Y1, X2: rn.Scan.X2, Y2: rn.Scan.Y2, DurationMs: rn.Scan.Ms, MaxSwipes: rn.Scan.Max}
 		}
 		nodes[rn.Name] = n
 	}
