@@ -32,6 +32,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	adbPath := fs.String("adb", "adb", "path to adb binary")
 	serial := fs.String("serial", adb.DefaultSerial, "device serial")
 	display := fs.Int("display", 0, "display id for taps, 0 follows capture in run")
+	screencapDisplay := fs.String("screencap-display", "", "physical display id for screencap, empty uses default display")
 	pipe := fs.Bool("pipe", false, "run as daemon with pipe protocol")
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -46,7 +47,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "error: no command")
 		return 2
 	}
-	client, err := adb.New(adb.Config{AdbPath: *adbPath, Serial: *serial, Display: *display})
+	client, err := adb.New(adb.Config{AdbPath: *adbPath, Serial: *serial, Display: *display, ScreencapDisplay: *screencapDisplay})
 	if err != nil {
 		fmt.Fprintln(stderr, err.Error())
 		return 1
@@ -72,12 +73,12 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 				sfs := flag.NewFlagSet("screencap", flag.ContinueOnError)
 				sfs.SetOutput(stderr)
 				out := sfs.String("o", "screen.png", "output path")
-				if err := sfs.Parse(args); err != nil {
-					fmt.Fprintln(stderr, "usage: klabautermann screencap [-o <path>]")
-					return 2
-				}
-				if sfs.NArg() != 0 {
-					fmt.Fprintln(stderr, "usage: klabautermann screencap [-o <path>]")
+			if err := sfs.Parse(args); err != nil {
+				fmt.Fprintln(stderr, "usage: klabautermann [--screencap-display <id>] screencap [-o <path>]")
+				return 2
+			}
+			if sfs.NArg() != 0 {
+				fmt.Fprintln(stderr, "usage: klabautermann [--screencap-display <id>] screencap [-o <path>]")
 					fmt.Fprintln(stderr, "error: screencap takes no positional arguments")
 					return 2
 				}

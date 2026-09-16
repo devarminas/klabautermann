@@ -237,6 +237,39 @@ func TestTapArgsWithDisplay(t *testing.T) {
 	}
 }
 
+func TestScreencapArgsWithDisplay(t *testing.T) {
+	c := mustNew(t, Config{Serial: "test-serial", ScreencapDisplay: "2"})
+	var gotArgs []string
+	png := append(append([]byte{}, pngMagic...), 0x00, 0x01)
+	c.run = func(_ context.Context, args []string) ([]byte, error) {
+		gotArgs = args
+		return png, nil
+	}
+	if _, err := c.Screencap(context.Background()); err != nil {
+		t.Fatalf("Screencap error = %v", err)
+	}
+	want := []string{"-s", "test-serial", "exec-out", "screencap", "-d", "2", "-p"}
+	if !reflect.DeepEqual(gotArgs, want) {
+		t.Errorf("args = %v, want %v", gotArgs, want)
+	}
+}
+
+func TestScreencapArgsEmptyDisplay(t *testing.T) {
+	c := mustNew(t, Config{Serial: "test-serial"})
+	var gotArgs []string
+	png := append(append([]byte{}, pngMagic...), 0x00, 0x01)
+	c.run = func(_ context.Context, args []string) ([]byte, error) {
+		gotArgs = args
+		return png, nil
+	}
+	if _, err := c.Screencap(context.Background()); err != nil {
+		t.Fatalf("Screencap error = %v", err)
+	}
+	want := []string{"-s", "test-serial", "exec-out", "screencap", "-p"}
+	if !reflect.DeepEqual(gotArgs, want) {
+		t.Errorf("args = %v, want %v", gotArgs, want)
+	}
+}
 func TestSwipeArgsWithDisplay(t *testing.T) {
 	c := mustNew(t, Config{Serial: "test-serial", Display: 2})
 	var gotArgs []string

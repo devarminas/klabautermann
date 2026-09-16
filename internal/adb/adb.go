@@ -16,18 +16,20 @@ const DefaultTimeout = 10 * time.Second
 var pngMagic = []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}
 
 type Config struct {
-	AdbPath string
-	Serial  string
-	Timeout time.Duration
-	Display int
+	AdbPath          string
+	Serial           string
+	Timeout          time.Duration
+	Display          int
+	ScreencapDisplay string
 }
 
 type Client struct {
-	adbPath string
-	serial  string
-	timeout time.Duration
-	Display int
-	run     func(ctx context.Context, args []string) ([]byte, error)
+	adbPath          string
+	serial           string
+	timeout          time.Duration
+	Display          int
+	ScreencapDisplay string
+	run              func(ctx context.Context, args []string) ([]byte, error)
 }
 
 func New(cfg Config) (*Client, error) {
@@ -43,7 +45,7 @@ func New(cfg Config) (*Client, error) {
 	if cfg.Timeout <= 0 {
 		cfg.Timeout = DefaultTimeout
 	}
-	c := &Client{adbPath: cfg.AdbPath, serial: cfg.Serial, timeout: cfg.Timeout, Display: cfg.Display}
+	c := &Client{adbPath: cfg.AdbPath, serial: cfg.Serial, timeout: cfg.Timeout, Display: cfg.Display, ScreencapDisplay: cfg.ScreencapDisplay}
 	c.run = func(ctx context.Context, args []string) ([]byte, error) {
 		cmd := exec.CommandContext(ctx, c.adbPath, args...)
 		var stdout, stderr bytes.Buffer
@@ -64,7 +66,12 @@ func (c *Client) withTimeout(ctx context.Context) (context.Context, context.Canc
 func (c *Client) Screencap(ctx context.Context) ([]byte, error) {
 	ctx, cancel := c.withTimeout(ctx)
 	defer cancel()
-	out, err := c.run(ctx, []string{"-s", c.serial, "exec-out", "screencap", "-p"})
+	args := []string{"-s", c.serial, "exec-out", "screencap"}
+	// screencap usage orders the display flag before -p: screencap [-d display-id] -p.
+	if c.ScreencapDisplay != "" {
+		args = append(args, "-d", c.ScreencapDisplay)
+	}
+	out, err := c.run(ctx, append(args, "-p"))
 	if err != nil {
 		return nil, err
 	}
