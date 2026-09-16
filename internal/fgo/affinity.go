@@ -67,13 +67,13 @@ var affinities = map[Class]map[Class]float64{
 	Rider:      {Caster: 2.0, Assassin: 0.5, Berserker: 2.0, Ruler: 0.5},
 	Caster:     {Caster: 0.5, Assassin: 2.0, Berserker: 2.0, Ruler: 0.5},
 	Assassin:   {Rider: 2.0, Caster: 0.5, Berserker: 2.0, Ruler: 0.5},
-	Berserker:  {Saber: 1.5, Archer: 1.5, Lancer: 1.5, Rider: 1.5, Caster: 1.5, Assassin: 1.5, Berserker: 1.5, Ruler: 1.5, Avenger: 1.5, MoonCancer: 1.5, AlterEgo: 0.5, Foreigner: 1.5, Pretender: 0.5, Beast: 1.5},
+	Berserker:  {Saber: 1.5, Archer: 1.5, Lancer: 1.5, Rider: 1.5, Caster: 1.5, Assassin: 1.5, Berserker: 1.5, Ruler: 1.5, Avenger: 1.5, MoonCancer: 1.5, AlterEgo: 1.5, Foreigner: 0.5, Pretender: 1.5, Beast: 1.5},
 	Ruler:      {Berserker: 2.0, Avenger: 0.5, MoonCancer: 2.0},
 	Avenger:    {Ruler: 2.0, MoonCancer: 0.5, Berserker: 2.0},
 	MoonCancer: {Ruler: 0.5, Avenger: 2.0, Berserker: 2.0},
 	AlterEgo:   {Saber: 0.5, Archer: 0.5, Lancer: 0.5, Rider: 1.5, Caster: 1.5, Assassin: 1.5, Berserker: 2.0, Foreigner: 2.0, Pretender: 0.5},
 	Foreigner:  {AlterEgo: 0.5, Foreigner: 2.0, Pretender: 2.0, Berserker: 2.0},
 	Pretender:  {Saber: 1.5, Archer: 1.5, Lancer: 1.5, Rider: 0.5, Caster: 0.5, Assassin: 0.5, Berserker: 2.0, AlterEgo: 2.0, Foreigner: 0.5},
-	// Beast uses Beast I values because Beast matchups vary per Beast, source is the FGO wiki Battle Damage Calculation class triangle table.
+	// Beast uses Beast I values because Beast matchups vary per Beast, source is https://api.atlasacademy.io/export/NA/NiceClassRelation.json as authoritative over the wiki table.
 	Beast: {Saber: 2.0, Archer: 2.0, Lancer: 2.0, Berserker: 2.0, Avenger: 0.5},
 }
