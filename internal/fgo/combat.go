@@ -14,8 +14,9 @@ const (
 )
 
 type Card struct {
-	Kind CardKind
-	X, Y int
+	Kind    CardKind
+	Servant int
+	X, Y    int
 }
 
 type Combat struct {
@@ -38,7 +39,58 @@ func PreferBuster(cards []Card) []Card {
 	return out
 }
 
-func (c *Combat) Run(ctx context.Context, sense func(ctx context.Context) (clear bool, cards []Card, err error), pick func([]Card) []Card, attack func(ctx context.Context) error, tap func(ctx context.Context, x, y int) error) (turns int, err error) {
+func OrderFocus(cards []Card) []Card {
+	var order []int
+	seen := map[int]bool{}
+	for _, cd := range cards {
+		if !seen[cd.Servant] {
+			seen[cd.Servant] = true
+			order = append(order, cd.Servant)
+		}
+	}
+	out := make([]Card, 0, 3)
+	for _, s := range order {
+		for _, cd := range cards {
+			if cd.Servant != s {
+				continue
+			}
+			out = append(out, cd)
+			if len(out) == 3 {
+				return out
+			}
+		}
+	}
+	return out
+}
+
+func OrderSpread(cards []Card) []Card {
+	var order []int
+	groups := map[int][]Card{}
+	for _, cd := range cards {
+		if _, ok := groups[cd.Servant]; !ok {
+			order = append(order, cd.Servant)
+		}
+		groups[cd.Servant] = append(groups[cd.Servant], cd)
+	}
+	out := make([]Card, 0, 3)
+	for i := 0; ; i++ {
+		progressed := false
+		for _, s := range order {
+			if i < len(groups[s]) {
+				out = append(out, groups[s][i])
+				progressed = true
+				if len(out) == 3 {
+					return out
+				}
+			}
+		}
+		if !progressed {
+			return out
+		}
+	}
+}
+
+func (c *Combat) Run(ctx context.Context, sense func(ctx context.Context) (clear bool, cards []Card, err error), pick func([]Card) []Card, attack func(ctx context.Context) error, tap func(ctx context.Context, x, y int) error, focus func(ctx context.Context) (x, y int, tapTarget bool, err error)) (turns int, err error) {
 	max := 30
 	if c != nil && c.MaxTurns > 0 {
 		max = c.MaxTurns
@@ -72,7 +124,19 @@ func (c *Combat) Run(ctx context.Context, sense func(ctx context.Context) (clear
 		if err != nil {
 			return turns, fmt.Errorf("turn %d: sense: %w", turns+1, err)
 		}
-		for _, cd := range choose(dealt) {
+		picked := choose(dealt)
+		if focus != nil {
+			fx, fy, ok, err := focus(ctx)
+			if err != nil {
+				return turns, fmt.Errorf("turn %d: focus: %w", turns+1, err)
+			}
+			if ok {
+				if err := tap(ctx, fx, fy); err != nil {
+					return turns, fmt.Errorf("turn %d: tap %d,%d: %w", turns+1, fx, fy, err)
+				}
+			}
+		}
+		for _, cd := range picked {
 			if err := ctx.Err(); err != nil {
 				return turns, fmt.Errorf("turn %d: %w", turns+1, err)
 			}

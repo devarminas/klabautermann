@@ -19,6 +19,7 @@ func TestCombatClearImmediately(t *testing.T) {
 		func([]fgo.Card) []fgo.Card { t.Error("pick called after clear"); return nil },
 		func(context.Context) error { attacks++; return nil },
 		func(context.Context, int, int) error { taps++; return nil },
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("Run = _, %v, want nil", err)
@@ -70,6 +71,7 @@ func TestCombatTwoTurnClear(t *testing.T) {
 		pick,
 		func(context.Context) error { attacks++; return nil },
 		func(_ context.Context, x, y int) error { tapped = append(tapped, [2]int{x, y}); return nil },
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("Run = _, %v, want nil", err)
@@ -101,6 +103,7 @@ func TestCombatMaxTurns(t *testing.T) {
 		nil,
 		func(context.Context) error { return nil },
 		func(context.Context, int, int) error { return nil },
+		nil,
 	)
 	if err == nil {
 		t.Fatal("Run = _, nil, want max turns error")
@@ -122,6 +125,7 @@ func TestCombatSenseError(t *testing.T) {
 		nil,
 		func(context.Context) error { return nil },
 		func(context.Context, int, int) error { return nil },
+		nil,
 	)
 	if !errors.Is(err, boom) {
 		t.Fatalf("Run = _, %v, want %v", err, boom)
@@ -158,6 +162,7 @@ func TestCombatNilPickUsesBusterFirst(t *testing.T) {
 		nil,
 		func(context.Context) error { return nil },
 		func(_ context.Context, x, y int) error { tapped = append(tapped, [2]int{x, y}); return nil },
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("Run = _, %v, want nil", err)
@@ -186,5 +191,137 @@ func TestPreferBuster(t *testing.T) {
 	}
 	if got := fgo.PreferBuster(hand); !reflect.DeepEqual(got, want) {
 		t.Errorf("PreferBuster = %v, want %v", got, want)
+	}
+}
+
+func TestOrderFocusGroupsByServant(t *testing.T) {
+	hand := []fgo.Card{
+		{Kind: fgo.Buster, Servant: 0, X: 1},
+		{Kind: fgo.Arts, Servant: 1, X: 2},
+		{Kind: fgo.Buster, Servant: 0, X: 3},
+	}
+	want := []fgo.Card{hand[0], hand[2], hand[1]}
+	if got := fgo.OrderFocus(hand); !reflect.DeepEqual(got, want) {
+		t.Errorf("OrderFocus = %v, want %v", got, want)
+	}
+}
+
+func TestOrderSpreadRoundRobin(t *testing.T) {
+	hand := []fgo.Card{
+		{Kind: fgo.Buster, Servant: 0, X: 1},
+		{Kind: fgo.Arts, Servant: 1, X: 2},
+		{Kind: fgo.Buster, Servant: 0, X: 3},
+	}
+	if got := fgo.OrderSpread(hand); !reflect.DeepEqual(got, hand) {
+		t.Errorf("OrderSpread = %v, want %v", got, hand)
+	}
+	stacked := []fgo.Card{
+		{Kind: fgo.Buster, Servant: 0, X: 1},
+		{Kind: fgo.Arts, Servant: 0, X: 2},
+		{Kind: fgo.Quick, Servant: 1, X: 3},
+	}
+	want := []fgo.Card{stacked[0], stacked[2], stacked[1]}
+	if got := fgo.OrderSpread(stacked); !reflect.DeepEqual(got, want) {
+		t.Errorf("OrderSpread = %v, want %v", got, want)
+	}
+}
+
+func TestOrderZeroServant(t *testing.T) {
+	hand := []fgo.Card{
+		{Kind: fgo.Buster, X: 1},
+		{Kind: fgo.Arts, X: 2},
+		{Kind: fgo.Quick, X: 3},
+	}
+	if got := fgo.OrderFocus(hand); !reflect.DeepEqual(got, hand) {
+		t.Errorf("OrderFocus = %v, want %v", got, hand)
+	}
+	if got := fgo.OrderSpread(hand); !reflect.DeepEqual(got, hand) {
+		t.Errorf("OrderSpread = %v, want %v", got, hand)
+	}
+}
+
+func TestCombatFocusTapOrder(t *testing.T) {
+	c := &fgo.Combat{}
+	deal := []fgo.Card{
+		{Kind: fgo.Buster, X: 1, Y: 1},
+		{Kind: fgo.Arts, X: 2, Y: 2},
+		{Kind: fgo.Quick, X: 3, Y: 3},
+	}
+	calls := 0
+	sense := func(context.Context) (bool, []fgo.Card, error) {
+		calls++
+		if calls == 2 {
+			return false, deal, nil
+		}
+		if calls > 2 {
+			return true, nil, nil
+		}
+		return false, nil, nil
+	}
+	focusCalls := 0
+	focus := func(context.Context) (int, int, bool, error) {
+		focusCalls++
+		return 9, 9, true, nil
+	}
+	var tapped [][2]int
+	turns, err := c.Run(
+		context.Background(),
+		sense,
+		func(cards []fgo.Card) []fgo.Card { return cards[:3] },
+		func(context.Context) error { return nil },
+		func(_ context.Context, x, y int) error { tapped = append(tapped, [2]int{x, y}); return nil },
+		focus,
+	)
+	if err != nil {
+		t.Fatalf("Run = _, %v, want nil", err)
+	}
+	if turns != 1 {
+		t.Errorf("Run turns = %d, want 1", turns)
+	}
+	if focusCalls != 1 {
+		t.Errorf("focus calls = %d, want 1", focusCalls)
+	}
+	want := [][2]int{{9, 9}, {1, 1}, {2, 2}, {3, 3}}
+	if !reflect.DeepEqual(tapped, want) {
+		t.Errorf("Run taps = %v, want %v", tapped, want)
+	}
+}
+
+func TestCombatNilFocusNoTargetTaps(t *testing.T) {
+	c := &fgo.Combat{}
+	deal := []fgo.Card{
+		{Kind: fgo.Buster, X: 1, Y: 1},
+		{Kind: fgo.Arts, X: 2, Y: 2},
+		{Kind: fgo.Quick, X: 3, Y: 3},
+	}
+	calls := 0
+	sense := func(context.Context) (bool, []fgo.Card, error) {
+		calls++
+		if calls == 2 {
+			return false, deal, nil
+		}
+		if calls > 2 {
+			return true, nil, nil
+		}
+		return false, nil, nil
+	}
+	var tapped [][2]int
+	turns, err := c.Run(
+		context.Background(),
+		sense,
+		func(cards []fgo.Card) []fgo.Card { return cards[:3] },
+		func(context.Context) error { return nil },
+		func(_ context.Context, x, y int) error { tapped = append(tapped, [2]int{x, y}); return nil },
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("Run = _, %v, want nil", err)
+	}
+	if turns != 1 {
+		t.Errorf("Run turns = %d, want 1", turns)
+	}
+	want := [][2]int{{1, 1}, {2, 2}, {3, 3}}
+	if !reflect.DeepEqual(tapped, want) {
+		t.Errorf("Run taps = %v, want %v", tapped, want)
 	}
 }
