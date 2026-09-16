@@ -151,7 +151,7 @@ func TestQuestPathFields(t *testing.T) {
 		},
 		"SelectSupport": {
 			Name:      "SelectSupport",
-			ROI:       image.Rect(300, 20, 1620, 160),
+			ROI:       image.Rect(1200, 0, 1920, 180),
 			Threshold: 0.85,
 			TapCenter: true,
 			Next:      []string{"GuestServant"},
@@ -232,7 +232,7 @@ func TestQuestPathFields(t *testing.T) {
 		{Name: "ChaldeaGate", Template: "../templates/chaldea-gate.png", Threshold: 0.85, Tap: "center", ROI: &decodedRect{X: 0, Y: 30, W: 820, H: 140}, Next: []string{"DailyQuests"}},
 		{Name: "DailyQuests", Template: "../templates/daily-quests.png", Threshold: 0, Tap: "center", ROI: &decodedRect{X: 80, Y: 180, W: 1020, H: 470}, Next: []string{}},
 		{Name: "Tendency", Template: "../templates/tendency-saber-rider.png", Threshold: 0, Tap: "center", ROI: &decodedRect{X: 900, Y: 200, W: 600, H: 300}, Next: []string{"SelectSupport"}},
-		{Name: "SelectSupport", Template: "../templates/select-support.png", Threshold: 0.85, Tap: "center", ROI: &decodedRect{X: 300, Y: 20, W: 1320, H: 140}, Next: []string{"GuestServant"}},
+		{Name: "SelectSupport", Template: "../templates/select-support.png", Threshold: 0.85, Tap: "center", ROI: &decodedRect{X: 1200, Y: 0, W: 720, H: 180}, Next: []string{"GuestServant"}},
 		{Name: "GuestServant", Template: "../templates/guest-servant.png", Threshold: 0, Tap: "center", ROI: &decodedRect{X: 100, Y: 200, W: 1720, H: 500}, Next: []string{}},
 		{Name: "ConfirmParty", Template: "../templates/confirm-party.png", Threshold: 0.85, Tap: "center", ROI: &decodedRect{X: 1200, Y: 0, W: 720, H: 180}, Next: []string{"StartQuest"}},
 		{Name: "StartQuest", Template: "../templates/start-quest.png", Threshold: 0, Tap: "center", ROI: &decodedRect{X: 1400, Y: 830, W: 520, H: 250}, Next: []string{}},

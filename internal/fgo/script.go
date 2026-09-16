@@ -58,7 +58,7 @@ func (s *Script) CheckTendency() *Script {
 }
 
 func (s *Script) OpenSupport() *Script {
-	return s.add("SelectSupport", "../templates/select-support.png", image.Rect(300, 20, 1620, 160), 0.85, []string{"GuestServant"})
+	return s.add("SelectSupport", "../templates/select-support.png", image.Rect(1200, 0, 1920, 180), 0.85, []string{"GuestServant"})
 }
 
 func (s *Script) PickGuest() *Script {
