@@ -1,0 +1,6 @@
+{
+  "start": "DailyQuests",
+  "nodes": [
+    {"name": "DailyQuests", "template": "../templates/daily-quests.png", "tap": "center", "roi": {"x": 80, "y": 180, "w": 1020, "h": 470}, "scan": {"x1": 1400, "y1": 360, "x2": 1400, "y2": 760, "ms": 800, "max": 6}, "next": []}
+  ]
+}
