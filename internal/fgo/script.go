@@ -65,8 +65,32 @@ func (s *Script) PickGuest() *Script {
 	return s.Tap("GuestServant", "../templates/guest-servant.png", image.Rect(100, 200, 1820, 700))
 }
 
+func (s *Script) ConfirmParty() *Script {
+	return s.add("ConfirmParty", "../templates/confirm-party.png", image.Rect(1200, 0, 1920, 180), 0.85, []string{"StartQuest"})
+}
+
 func (s *Script) StartQuest() *Script {
 	return s.Tap("StartQuest", "../templates/start-quest.png", image.Rect(1400, 830, 1920, 1080))
+}
+
+func (s *Script) ClassMoonCancer() *Script {
+	return s.Tap("ClassMoonCancer", "../templates/icon-mooncancer.png", image.Rect(0, 150, 220, 350))
+}
+
+func (s *Script) ClassCaster() *Script {
+	return s.Tap("ClassCaster", "../templates/icon-caster.png", image.Rect(320, 150, 530, 350))
+}
+
+func (s *Script) ClassPretender() *Script {
+	return s.Tap("ClassPretender", "../templates/icon-pretender.png", image.Rect(590, 150, 800, 350))
+}
+
+func (s *Script) ClassRider() *Script {
+	return s.Tap("ClassRider", "../templates/icon-rider.png", image.Rect(920, 150, 1130, 350))
+}
+
+func (s *Script) ClassShielder() *Script {
+	return s.Tap("ClassShielder", "../templates/icon-shielder.png", image.Rect(1500, 150, 1700, 350))
 }
 
 func (s *Script) Build() (pipeline.Pipeline, error) {
