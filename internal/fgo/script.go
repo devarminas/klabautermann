@@ -93,6 +93,26 @@ func (s *Script) ClassShielder() *Script {
 	return s.Tap("ClassShielder", "../templates/icon-shielder.png", image.Rect(1500, 150, 1700, 350))
 }
 
+func (s *Script) BattleWave() *Script {
+	return s.add("BattleWave", "../templates/wave.png", image.Rect(1050, 0, 1550, 160), 0.85, []string{"Attack"})
+}
+
+func (s *Script) OpenAttack() *Script {
+	return s.add("Attack", "../templates/attack.png", image.Rect(1400, 680, 1920, 1080), 0, []string{})
+}
+
+func (s *Script) EnemyRider() *Script {
+	return s.Tap("EnemyRider", "../templates/enemy-rider.png", image.Rect(0, 0, 700, 160))
+}
+
+func (s *Script) EnemySaber() *Script {
+	return s.Tap("EnemySaber", "../templates/enemy-saber.png", image.Rect(600, 0, 1100, 160))
+}
+
+func (s *Script) SkillSample() *Script {
+	return s.Tap("SkillSample", "../templates/skill-sample.png", image.Rect(0, 750, 1300, 1000))
+}
+
 func (s *Script) Build() (pipeline.Pipeline, error) {
 	if len(s.entries) == 0 {
 		return pipeline.Pipeline{}, fmt.Errorf("fgo: script has no nodes")

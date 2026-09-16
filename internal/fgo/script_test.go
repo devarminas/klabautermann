@@ -20,7 +20,7 @@ func menuScript() *fgo.Script {
 }
 
 func questScript() *fgo.Script {
-	return fgo.New().OpenChaldeaGate().OpenDailyQuests().CheckTendency().OpenSupport().PickGuest().ConfirmParty().StartQuest().ClassMoonCancer().ClassCaster().ClassPretender().ClassRider().ClassShielder()
+	return fgo.New().OpenChaldeaGate().OpenDailyQuests().CheckTendency().OpenSupport().PickGuest().ConfirmParty().StartQuest().ClassMoonCancer().ClassCaster().ClassPretender().ClassRider().ClassShielder().BattleWave().OpenAttack().EnemyRider().EnemySaber().SkillSample()
 }
 
 type decodedRect struct {
@@ -198,6 +198,34 @@ func TestQuestPathFields(t *testing.T) {
 			ROI:       image.Rect(1500, 150, 1700, 350),
 			TapCenter: true,
 		},
+		"BattleWave": {
+			Name:      "BattleWave",
+			ROI:       image.Rect(1050, 0, 1550, 160),
+			Threshold: 0.85,
+			TapCenter: true,
+			Next:      []string{"Attack"},
+		},
+		"Attack": {
+			Name:      "Attack",
+			ROI:       image.Rect(1400, 680, 1920, 1080),
+			TapCenter: true,
+			Next:      []string{},
+		},
+		"EnemyRider": {
+			Name:      "EnemyRider",
+			ROI:       image.Rect(0, 0, 700, 160),
+			TapCenter: true,
+		},
+		"EnemySaber": {
+			Name:      "EnemySaber",
+			ROI:       image.Rect(600, 0, 1100, 160),
+			TapCenter: true,
+		},
+		"SkillSample": {
+			Name:      "SkillSample",
+			ROI:       image.Rect(0, 750, 1300, 1000),
+			TapCenter: true,
+		},
 	}
 	if len(built.Nodes) != len(wantNodes) {
 		t.Fatalf("node count = %d, want %d", len(built.Nodes), len(wantNodes))
@@ -241,6 +269,11 @@ func TestQuestPathFields(t *testing.T) {
 		{Name: "ClassPretender", Template: "../templates/icon-pretender.png", Threshold: 0, Tap: "center", ROI: &decodedRect{X: 590, Y: 150, W: 210, H: 200}, Next: []string{}},
 		{Name: "ClassRider", Template: "../templates/icon-rider.png", Threshold: 0, Tap: "center", ROI: &decodedRect{X: 920, Y: 150, W: 210, H: 200}, Next: []string{}},
 		{Name: "ClassShielder", Template: "../templates/icon-shielder.png", Threshold: 0, Tap: "center", ROI: &decodedRect{X: 1500, Y: 150, W: 200, H: 200}, Next: []string{}},
+		{Name: "BattleWave", Template: "../templates/wave.png", Threshold: 0.85, Tap: "center", ROI: &decodedRect{X: 1050, Y: 0, W: 500, H: 160}, Next: []string{"Attack"}},
+		{Name: "Attack", Template: "../templates/attack.png", Threshold: 0, Tap: "center", ROI: &decodedRect{X: 1400, Y: 680, W: 520, H: 400}, Next: []string{}},
+		{Name: "EnemyRider", Template: "../templates/enemy-rider.png", Threshold: 0, Tap: "center", ROI: &decodedRect{X: 0, Y: 0, W: 700, H: 160}, Next: []string{}},
+		{Name: "EnemySaber", Template: "../templates/enemy-saber.png", Threshold: 0, Tap: "center", ROI: &decodedRect{X: 600, Y: 0, W: 500, H: 160}, Next: []string{}},
+		{Name: "SkillSample", Template: "../templates/skill-sample.png", Threshold: 0, Tap: "center", ROI: &decodedRect{X: 0, Y: 750, W: 1300, H: 250}, Next: []string{}},
 	}
 	if !reflect.DeepEqual(decoded.Nodes, wantJSON) {
 		t.Errorf("JSON nodes = %+v, want %+v", decoded.Nodes, wantJSON)
