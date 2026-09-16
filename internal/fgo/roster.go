@@ -70,3 +70,52 @@ func GaugeFill(frame image.Image, rect image.Rectangle) float64 {
 	}
 	return v
 }
+
+type SensedCard struct {
+	Kind   CardKind
+	Slot   int
+	Center image.Point
+	Score  float64
+}
+
+// DetectCards matches faces resources/templates/card-buster.png, card-arts.png, card-quick.png.
+// Slot rects come from live calibration and thresholds are spike-grade.
+func DetectCards(frame image.Image, faces map[CardKind]image.Image, slots []image.Rectangle, threshold float64) []SensedCard {
+	if frame == nil {
+		return nil
+	}
+	if len(slots) == 0 {
+		return nil
+	}
+	if len(faces) == 0 {
+		return nil
+	}
+	var out []SensedCard
+	for i, slot := range slots {
+		if slot.Empty() {
+			continue
+		}
+		best := SensedCard{Slot: i}
+		matched := false
+		for kind, face := range faces {
+			if face == nil || face.Bounds().Empty() {
+				continue
+			}
+			m, err := vision.Match(frame, face, slot)
+			if err != nil {
+				continue
+			}
+			if m.Score >= threshold && (!matched || m.Score > best.Score) {
+				best.Kind = kind
+				best.Center = m.Center
+				best.Score = m.Score
+				matched = true
+			}
+		}
+		if matched {
+			out = append(out, best)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Slot < out[j].Slot })
+	return out
+}

@@ -114,3 +114,92 @@ func TestGaugeFill(t *testing.T) {
 		t.Fatalf("empty rect got %v, want 0", v)
 	}
 }
+
+func TestDetectCards(t *testing.T) {
+	buster := checker(20, 20, color.Black, color.White)
+	arts := image.NewRGBA(image.Rect(0, 0, 20, 20))
+	for y := 0; y < 20; y++ {
+		for x := 0; x < 20; x++ {
+			var c color.Color = color.Black
+			if y >= 10 {
+				c = color.White
+			}
+			arts.Set(x, y, c)
+		}
+	}
+	quick := image.NewRGBA(image.Rect(0, 0, 20, 20))
+	for y := 0; y < 20; y++ {
+		for x := 0; x < 20; x++ {
+			var c color.Color = color.Black
+			if x >= 10 {
+				c = color.White
+			}
+			quick.Set(x, y, c)
+		}
+	}
+	faces := map[fgo.CardKind]image.Image{fgo.Buster: buster, fgo.Arts: arts, fgo.Quick: quick}
+	frame := image.NewRGBA(image.Rect(0, 0, 100, 40))
+	gray := color.RGBA{128, 128, 128, 255}
+	for y := 0; y < 40; y++ {
+		for x := 0; x < 100; x++ {
+			frame.Set(x, y, gray)
+		}
+	}
+	slots := []image.Rectangle{image.Rect(5, 5, 25, 25), image.Rect(35, 5, 55, 25), image.Rect(65, 5, 85, 25)}
+	paste(frame, buster, 5, 5)
+	paste(frame, arts, 35, 5)
+	paste(frame, quick, 65, 5)
+	got := fgo.DetectCards(frame, faces, slots, 0.8)
+	if len(got) != 3 {
+		t.Fatalf("got %d cards, want 3", len(got))
+	}
+	want := []struct {
+		kind   fgo.CardKind
+		slot   int
+		center image.Point
+	}{
+		{fgo.Buster, 0, image.Point{X: 15, Y: 15}},
+		{fgo.Arts, 1, image.Point{X: 45, Y: 15}},
+		{fgo.Quick, 2, image.Point{X: 75, Y: 15}},
+	}
+	for i, w := range want {
+		if got[i].Kind != w.kind {
+			t.Fatalf("card %d got kind %q, want %q", i, got[i].Kind, w.kind)
+		}
+		if got[i].Slot != w.slot {
+			t.Fatalf("card %d got slot %d, want %d", i, got[i].Slot, w.slot)
+		}
+		if got[i].Center != w.center {
+			t.Fatalf("card %d got center %v, want %v", i, got[i].Center, w.center)
+		}
+		if math.Abs(got[i].Score-1.0) > 1e-9 {
+			t.Fatalf("card %d got score %v, want 1.0", i, got[i].Score)
+		}
+	}
+	unknown := image.NewRGBA(image.Rect(0, 0, 20, 20))
+	for y := 0; y < 20; y++ {
+		for x := 0; x < 20; x++ {
+			var c color.Color = color.Black
+			if (x*7+y*13)%5 == 0 {
+				c = color.White
+			}
+			unknown.Set(x, y, c)
+		}
+	}
+	frame2 := image.NewRGBA(image.Rect(0, 0, 40, 40))
+	for y := 0; y < 40; y++ {
+		for x := 0; x < 40; x++ {
+			frame2.Set(x, y, gray)
+		}
+	}
+	paste(frame2, unknown, 10, 10)
+	if skipped := fgo.DetectCards(frame2, faces, []image.Rectangle{image.Rect(10, 10, 30, 30)}, 0.8); len(skipped) != 0 {
+		t.Fatalf("unknown pattern got %+v, want skipped", skipped)
+	}
+	if empty := fgo.DetectCards(frame, faces, nil, 0.8); empty != nil {
+		t.Fatalf("empty slots got %+v, want nil", empty)
+	}
+	if nofaces := fgo.DetectCards(frame, nil, slots, 0.8); nofaces != nil {
+		t.Fatalf("nil faces got %+v, want nil", nofaces)
+	}
+}
