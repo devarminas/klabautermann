@@ -19,6 +19,10 @@ func menuScript() *fgo.Script {
 	return fgo.New().OpenHome().OpenFormation().CloseView()
 }
 
+func questScript() *fgo.Script {
+	return fgo.New().OpenChaldeaGate().OpenDailyQuests().CheckTendency().OpenSupport().PickGuest().StartQuest()
+}
+
 type decodedRect struct {
 	X int `json:"x"`
 	Y int `json:"y"`
@@ -112,6 +116,93 @@ func TestMenuTaskFields(t *testing.T) {
 		{Name: "Home", Template: "../templates/menu.png", Threshold: 0.8, Tap: "center", ROI: &decodedRect{X: 1620, Y: 870, W: 300, H: 170}, Next: []string{"Formation"}},
 		{Name: "Formation", Template: "../templates/formation.png", Threshold: 0, Tap: "center", ROI: &decodedRect{X: 310, Y: 720, W: 240, H: 270}, Next: []string{"Close"}},
 		{Name: "Close", Template: "../templates/close.png", Threshold: 0.85, Tap: "center", ROI: &decodedRect{X: 0, Y: 30, W: 260, H: 130}, Next: []string{}},
+	}
+	if !reflect.DeepEqual(decoded.Nodes, wantJSON) {
+		t.Errorf("JSON nodes = %+v, want %+v", decoded.Nodes, wantJSON)
+	}
+}
+
+func TestQuestPathFields(t *testing.T) {
+	built, err := questScript().Build()
+	if err != nil {
+		t.Fatalf("Build failed: %v", err)
+	}
+	if built.Start != "ChaldeaGate" {
+		t.Fatalf("Start = %q, want %q", built.Start, "ChaldeaGate")
+	}
+	wantNodes := map[string]pipeline.Node{
+		"ChaldeaGate": {
+			Name:      "ChaldeaGate",
+			ROI:       image.Rect(0, 30, 820, 170),
+			Threshold: 0.85,
+			TapCenter: true,
+			Next:      []string{"DailyQuests"},
+		},
+		"DailyQuests": {
+			Name:      "DailyQuests",
+			ROI:       image.Rect(80, 180, 1100, 650),
+			TapCenter: true,
+		},
+		"Tendency": {
+			Name:      "Tendency",
+			ROI:       image.Rect(900, 200, 1500, 500),
+			TapCenter: true,
+			Next:      []string{"SelectSupport"},
+		},
+		"SelectSupport": {
+			Name:      "SelectSupport",
+			ROI:       image.Rect(300, 20, 1620, 160),
+			Threshold: 0.85,
+			TapCenter: true,
+			Next:      []string{"GuestServant"},
+		},
+		"GuestServant": {
+			Name:      "GuestServant",
+			ROI:       image.Rect(100, 200, 1820, 700),
+			TapCenter: true,
+		},
+		"StartQuest": {
+			Name:      "StartQuest",
+			ROI:       image.Rect(1400, 830, 1920, 1080),
+			TapCenter: true,
+		},
+	}
+	if len(built.Nodes) != len(wantNodes) {
+		t.Fatalf("node count = %d, want %d", len(built.Nodes), len(wantNodes))
+	}
+	for name, want := range wantNodes {
+		got, ok := built.Nodes[name]
+		if !ok {
+			t.Fatalf("missing node %q", name)
+		}
+		if got.ROI != want.ROI {
+			t.Errorf("node %q ROI = %v, want %v", name, got.ROI, want.ROI)
+		}
+		if got.Threshold != want.Threshold {
+			t.Errorf("node %q threshold = %v, want %v", name, got.Threshold, want.Threshold)
+		}
+		if got.TapCenter != want.TapCenter {
+			t.Errorf("node %q TapCenter = %v, want %v", name, got.TapCenter, want.TapCenter)
+		}
+		if !reflect.DeepEqual(got.Next, want.Next) {
+			t.Errorf("node %q next = %v, want %v", name, got.Next, want.Next)
+		}
+	}
+	data, err := questScript().BuildJSON()
+	if err != nil {
+		t.Fatalf("BuildJSON failed: %v", err)
+	}
+	decoded := decodeJSON(t, data)
+	if decoded.Start != "ChaldeaGate" {
+		t.Errorf("JSON start = %q, want %q", decoded.Start, "ChaldeaGate")
+	}
+	wantJSON := []decodedNode{
+		{Name: "ChaldeaGate", Template: "../templates/chaldea-gate.png", Threshold: 0.85, Tap: "center", ROI: &decodedRect{X: 0, Y: 30, W: 820, H: 140}, Next: []string{"DailyQuests"}},
+		{Name: "DailyQuests", Template: "../templates/daily-quests.png", Threshold: 0, Tap: "center", ROI: &decodedRect{X: 80, Y: 180, W: 1020, H: 470}, Next: []string{}},
+		{Name: "Tendency", Template: "../templates/tendency-saber-rider.png", Threshold: 0, Tap: "center", ROI: &decodedRect{X: 900, Y: 200, W: 600, H: 300}, Next: []string{"SelectSupport"}},
+		{Name: "SelectSupport", Template: "../templates/select-support.png", Threshold: 0.85, Tap: "center", ROI: &decodedRect{X: 300, Y: 20, W: 1320, H: 140}, Next: []string{"GuestServant"}},
+		{Name: "GuestServant", Template: "../templates/guest-servant.png", Threshold: 0, Tap: "center", ROI: &decodedRect{X: 100, Y: 200, W: 1720, H: 500}, Next: []string{}},
+		{Name: "StartQuest", Template: "../templates/start-quest.png", Threshold: 0, Tap: "center", ROI: &decodedRect{X: 1400, Y: 830, W: 520, H: 250}, Next: []string{}},
 	}
 	if !reflect.DeepEqual(decoded.Nodes, wantJSON) {
 		t.Errorf("JSON nodes = %+v, want %+v", decoded.Nodes, wantJSON)

@@ -45,6 +45,30 @@ func (s *Script) CloseView() *Script {
 	return s.add("Close", "../templates/close.png", image.Rect(0, 30, 260, 160), 0.85, []string{})
 }
 
+func (s *Script) OpenChaldeaGate() *Script {
+	return s.add("ChaldeaGate", "../templates/chaldea-gate.png", image.Rect(0, 30, 820, 170), 0.85, []string{"DailyQuests"})
+}
+
+func (s *Script) OpenDailyQuests() *Script {
+	return s.Tap("DailyQuests", "../templates/daily-quests.png", image.Rect(80, 180, 1100, 650))
+}
+
+func (s *Script) CheckTendency() *Script {
+	return s.Tap("Tendency", "../templates/tendency-saber-rider.png", image.Rect(900, 200, 1500, 500), "SelectSupport")
+}
+
+func (s *Script) OpenSupport() *Script {
+	return s.add("SelectSupport", "../templates/select-support.png", image.Rect(300, 20, 1620, 160), 0.85, []string{"GuestServant"})
+}
+
+func (s *Script) PickGuest() *Script {
+	return s.Tap("GuestServant", "../templates/guest-servant.png", image.Rect(100, 200, 1820, 700))
+}
+
+func (s *Script) StartQuest() *Script {
+	return s.Tap("StartQuest", "../templates/start-quest.png", image.Rect(1400, 830, 1920, 1080))
+}
+
 func (s *Script) Build() (pipeline.Pipeline, error) {
 	if len(s.entries) == 0 {
 		return pipeline.Pipeline{}, fmt.Errorf("fgo: script has no nodes")
